@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Suhu ESP32</title>
+    <title>Monitor Suhu ESP32 (Dual Channel)</title>
 
     <!-- Bootstrap 5 CSS CDN (Dark Theme) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -14,19 +14,19 @@
     <style>
         /* Custom Dark Mode Styling */
         body {
-            background-color: #121212; /* Latar belakang sangat gelap */
-            color: #e0e0e0; /* Teks terang */
+            background-color: #121212;
+            color: #e0e0e0;
             font-family: 'Inter', sans-serif;
         }
         .card {
-            background-color: #1e1e1e; /* Latar belakang kartu lebih gelap */
+            background-color: #1e1e1e;
             border: 1px solid #333;
             border-radius: 0.5rem;
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(118, 118, 118, 0.15); /* Bayangan terang untuk mode gelap */
+            box-shadow: 0 6px 20px rgba(118, 118, 118, 0.15);
         }
         .display-3 {
             font-weight: 700;
@@ -37,15 +37,40 @@
             margin-bottom: 20px;
             font-size: 1.75rem;
         }
-        /* Style kartu tautan Wifi agar terlihat seperti kartu dan dapat diklik */
-        .wifi-link-card {
-            text-decoration: none; /* Hapus garis bawah */
-            color: inherit; /* Warisi warna teks */
-            display: block; /* Buat tag anchor mengisi kartu */
-            height: 100%;
+        /* Style kartu WiFi agar terlihat bisa diklik */
+        .wifi-card-action {
+            cursor: pointer;
         }
-        .wifi-link-card:hover .card {
-            border-color: #0d6efd; /* Sorot batas saat hover */
+        .wifi-card-action:hover {
+            border-color: #0d6efd;
+        }
+        /* Modal Styling */
+        .modal-content {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+        .modal-header {
+            border-bottom: 1px solid #333;
+        }
+        .modal-footer {
+            border-top: 1px solid #333;
+        }
+        .step-number {
+            background-color: #0d6efd;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .step-item {
+            margin-bottom: 12px;
         }
     </style>
 </head>
@@ -67,12 +92,13 @@
 
             <!-- ======================================= -->
             <!-- 1. BAGIAN DATA DALAM RUANGAN (Kolom Kiri) -->
+            <!-- CHANNEL BARU: 3178283 -->
             <!-- ======================================= -->
             <div class="col-lg-6 mb-4">
                 <h2 class="text-primary section-header"><i class="fas fa-home me-2"></i>Monitoring Dalam Ruangan</h2>
                 <div class="row g-4">
 
-                    <!-- Kartu Suhu Dalam 1 -->
+                    <!-- Kartu Suhu Dalam 1 (Field 1) -->
                     <div class="col-md-6">
                         <div class="card p-3 h-100">
                             <div class="card-body text-center">
@@ -83,7 +109,7 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Kelembaban Dalam 1 -->
+                    <!-- Kartu Kelembaban Dalam 1 (Field 3) -->
                     <div class="col-md-6">
                         <div class="card p-3 h-100">
                             <div class="card-body text-center">
@@ -94,7 +120,7 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Suhu Dalam 2 -->
+                    <!-- Kartu Suhu Dalam 2 (Field 2) -->
                     <div class="col-md-6">
                         <div class="card p-3 h-100">
                             <div class="card-body text-center">
@@ -105,7 +131,7 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Kelembaban Dalam 2 -->
+                    <!-- Kartu Kelembaban Dalam 2 (Field 4) -->
                     <div class="col-md-6">
                         <div class="card p-3 h-100">
                             <div class="card-body text-center">
@@ -116,7 +142,7 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Status Baterai -->
+                    <!-- Kartu Status Baterai (Field 5) -->
                     <div class="col-md-6">
                         <div class="card p-3">
                             <div class="card-body text-center">
@@ -127,18 +153,16 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Tautan Status WiFi -->
+                    <!-- Kartu Tombol Status WiFi INDOOR (Dimodifikasi) -->
                     <div class="col-md-6">
-                        <a href="http://192.168.4.1" target="_blank" class="wifi-link-card" title="Klik untuk Konfigurasi WiFi">
-                            <div class="card p-3 h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-wifi fa-2x mb-2 text-secondary" id="indoor-wifi-icon"></i>
-                                    <p class="card-title text-uppercase fw-bold text-muted mb-1">Status WiFi (Config)</p>
-                                    <span class="badge bg-secondary fs-5" id="indoor-wifi-status">Config</span>
-                                    <p class="mt-1 text-xs text-muted">192.168.4.1</p>
-                                </div>
+                        <div class="card p-3 h-100 wifi-card-action" onclick="openWifiModal('Indoor')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-wifi fa-2x mb-2 text-secondary" id="indoor-wifi-icon"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Status WiFi (Config)</p>
+                                <span class="badge bg-secondary fs-5" id="indoor-wifi-status">Config</span>
+                                <p class="mt-1 text-xs text-muted">Klik untuk Panduan</p>
                             </div>
-                        </a>
+                        </div>
                     </div>
 
                 </div>
@@ -146,6 +170,7 @@
 
             <!-- ======================================= -->
             <!-- 2. BAGIAN DATA LUAR RUANGAN (Kolom Kanan) -->
+            <!-- CHANNEL LAMA: 3167317 -->
             <!-- ======================================= -->
             <div class="col-lg-6 mb-4">
                 <h2 class="text-warning section-header"><i class="fas fa-cloud-sun me-2"></i>Monitoring Luar Ruangan</h2>
@@ -173,18 +198,16 @@
                         </div>
                     </div>
 
-                    <!-- Kartu Tautan Status WiFi Luar -->
+                    <!-- Kartu Tombol Status WiFi OUTDOOR (Dimodifikasi) -->
                     <div class="col-md-12">
-                        <a href="http://192.168.4.1" target="_blank" class="wifi-link-card" title="Klik untuk Konfigurasi WiFi">
-                            <div class="card p-3 h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-signal fa-2x mb-2 text-secondary" id="outdoor-wifi-icon"></i>
-                                    <p class="card-title text-uppercase fw-bold text-muted mb-1">WiFi Luar (Config)</p>
-                                    <span class="badge bg-secondary fs-5" id="outdoor-wifi-status">Config</span>
-                                    <p class="mt-1 text-xs text-muted">192.168.4.1</p>
-                                </div>
+                        <div class="card p-3 h-100 wifi-card-action" onclick="openWifiModal('Outdoor')">
+                            <div class="card-body text-center">
+                                <i class="fas fa-signal fa-2x mb-2 text-secondary" id="outdoor-wifi-icon"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">WiFi Luar (Config)</p>
+                                <span class="badge bg-secondary fs-5" id="outdoor-wifi-status">Config</span>
+                                <p class="mt-1 text-xs text-muted">Klik untuk Panduan</p>
                             </div>
-                        </a>
+                        </div>
                     </div>
 
                 </div>
@@ -200,98 +223,128 @@
         </div>
     </footer>
 
+    <!-- ======================================= -->
+    <!-- MODAL PANDUAN WIFI (POPUP) -->
+    <!-- ======================================= -->
+    <div class="modal fade" id="wifiConfigModal" tabindex="-1" aria-labelledby="wifiConfigLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="wifiConfigLabel"><i class="fas fa-cogs me-2"></i>Konfigurasi WiFi</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3 text-info"><i class="fas fa-info-circle me-1"></i> Ikuti langkah berikut untuk mengganti jaringan WiFi alat:</p>
+                    
+                    <div class="step-item"><span class="step-number">1</span> Pastikan sudah connect ke Wifi <strong id="modal-wifi-name" class="text-warning">Wemos Indoor</strong> dengan password <code class="text-light bg-dark px-1">12345678</code></div>
+                    <div class="step-item"><span class="step-number">2</span> Masuk ke halaman konfigurasi dengan tombol di bawah ini.</div>
+                    <div class="step-item"><span class="step-number">3</span> Klik Tombol <strong>'Configure Wifi'</strong>.</div>
+                    <div class="step-item"><span class="step-number">4</span> Pilih Jaringan yang diinginkan / Masukkan SSID.</div>
+                    <div class="step-item"><span class="step-number">5</span> Ketik Password dan Klik Submit.</div>
+                    
+                    <div class="alert alert-secondary mt-3 mb-0 py-2" style="font-size: 0.9rem;">
+                        <i class="fas fa-exclamation-triangle me-1 text-warning"></i> <strong>Catatan:</strong> Halaman dashboard ini tidak akan update saat Anda terhubung ke WiFi alat.
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <a href="http://192.168.4.1" target="_blank" class="btn btn-primary"><i class="fas fa-external-link-alt me-2"></i>Buka 192.168.4.1</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- ======================================= -->
-    <!-- JAVASCRIPT UNTUK UPDATE DATA -->
+    <!-- JAVASCRIPT -->
     <!-- ======================================= -->
     <script>
-        // --- KONFIGURASI ---
-        // Channel ID DAN API Key SUDAH DI-SET
-        const THINGSPEAK_CHANNEL_ID = '3167317'; 
-        const THINGSPEAK_READ_API_KEY = 'S9AAMNFH3SO4D1QU'; 
+        // --- KONFIGURASI DUAL CHANNEL ---
+        const INDOOR_CHANNEL_ID = '3178283'; 
+        const INDOOR_READ_API_KEY = 'LAJ2U9NXE7Z4R4X2';
+
+        const OUTDOOR_CHANNEL_ID = '3167317';
+        const OUTDOOR_READ_API_KEY = 'S9AAMNFH3SO4D1QU'; 
         // ---------------------
 
-        function fetchThingspeakData() {
-            // --- PANGGILAN API THINGSPEAK SEBENARNYA ---
-            const url = https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?api_key=${THINGSPEAK_READ_API_KEY}&results=1;
+        // --- FUNGSI MODAL WIFI ---
+        function openWifiModal(type) {
+            const wifiNameElement = document.getElementById('modal-wifi-name');
             
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(HTTP error! status: ${response.status});
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data.feeds || data.feeds.length === 0 || !data.feeds[0]) {
-                        console.warn('Data Thingspeak kosong atau tidak ada feed.');
-                        // Menampilkan N/A jika tidak ada data
-                        updateUI({
-                            outdoorT: 'N/A', outdoorH: 'N/A',
-                            indoorT1: 'N/A', indoorH1: 'N/A',
-                            indoorT2: 'N/A', indoorH2: 'N/A',
-                            battery: 0, wifiStatus: 'Config'
-                        });
-                        document.getElementById('last-updated').textContent = 'Update Terakhir: Belum ada data';
-                        return;
-                    }
-                    
-                    const latestFeed = data.feeds[0];
+            if (type === 'Indoor') {
+                wifiNameElement.textContent = 'Wemos Indoor';
+            } else {
+                wifiNameElement.textContent = 'Wemos Outdoor';
+            }
+            
+            // Tampilkan Modal menggunakan Bootstrap API
+            const myModal = new bootstrap.Modal(document.getElementById('wifiConfigModal'));
+            myModal.show();
+        }
 
-                    // Pemetaan field berdasarkan daftar Anda:
-                    // field1: Suhu Luar
-                    // field2: Humid Luar
-                    // field3: Suhu Dalam 1
-                    // field4: Humid Dalam 1
-                    // field5: Suhu Dalam 2
-                    // field6: Humid Dalam 2
-                    // field7: Baterai
+        // --- FUNGSI THINGSPEAK ---
+        function fetchThingspeakData() {
+            const urlIndoor = `https://api.thingspeak.com/channels/${INDOOR_CHANNEL_ID}/feeds.json?api_key=${INDOOR_READ_API_KEY}&results=1`;
+            const urlOutdoor = `https://api.thingspeak.com/channels/${OUTDOOR_CHANNEL_ID}/feeds.json?api_key=${OUTDOOR_READ_API_KEY}&results=1`;
 
-                    const sensorData = {
-                        outdoorT: parseFloat(latestFeed.field1).toFixed(1) || '--.-',
-                        outdoorH: parseFloat(latestFeed.field2).toFixed(1) || '--.-',
-                        indoorT1: parseFloat(latestFeed.field3).toFixed(1) || '--.-',
-                        indoorH1: parseFloat(latestFeed.field4).toFixed(1) || '--.-',
-                        indoorT2: parseFloat(latestFeed.field5).toFixed(1) || '--.-',
-                        indoorH2: parseFloat(latestFeed.field6).toFixed(1) || '--.-',
-                        battery: parseInt(latestFeed.field7) || 0, // Baterai
-                        wifiStatus: 'Config' // Status WiFi di-hardcode
-                    };
-                    
-                    updateUI(sensorData);
+            const requestIndoor = fetch(urlIndoor).then(res => res.json());
+            const requestOutdoor = fetch(urlOutdoor).then(res => res.json());
+
+            Promise.all([requestIndoor, requestOutdoor])
+                .then(([dataIndoor, dataOutdoor]) => {
+                    // Indoor Data
+                    let indoorData = {};
+                    if (dataIndoor.feeds && dataIndoor.feeds.length > 0) {
+                        const feed = dataIndoor.feeds[0];
+                        indoorData = {
+                            t1: parseFloat(feed.field1).toFixed(1) || '--.-',
+                            t2: parseFloat(feed.field2).toFixed(1) || '--.-',
+                            h1: parseFloat(feed.field3).toFixed(1) || '--.-',
+                            h2: parseFloat(feed.field4).toFixed(1) || '--.-',
+                            batt: parseInt(feed.field5) || 0
+                        };
+                    }
+
+                    // Outdoor Data
+                    let outdoorData = {};
+                    if (dataOutdoor.feeds && dataOutdoor.feeds.length > 0) {
+                        const feed = dataOutdoor.feeds[0];
+                        outdoorData = {
+                            t: parseFloat(feed.field1).toFixed(1) || '--.-',
+                            h: parseFloat(feed.field2).toFixed(1) || '--.-'
+                        };
+                    }
+
+                    updateUI(indoorData, outdoorData);
                 })
                 .catch(error => {
-                    console.error('Error fetching data from Thingspeak:', error);
-                    // Tampilkan error di UI
-                    document.getElementById('last-updated').textContent = 'Error: Gagal mengambil data';
+                    console.error('Error fetching data:', error);
+                    document.getElementById('last-updated').textContent = 'Error koneksi ke Thingspeak';
                     document.getElementById('last-updated').classList.add('text-danger');
                 });
         }
 
-        function updateUI(data) {
-            // Fungsi untuk update teks, menangani 'N/A'
-            const updateText = (elementId, value, unit) => {
-                const element = document.getElementById(elementId);
-                if (value === 'N/A' || isNaN(value)) {
-                    element.textContent = 'N/A';
+        function updateUI(indoor, outdoor) {
+            const setText = (id, val, unit) => {
+                const el = document.getElementById(id);
+                if (val === undefined || val === 'NaN' || val === '--.-') {
+                    el.textContent = 'N/A';
                 } else {
-                    element.textContent = ${value}${unit};
+                    el.textContent = `${val}${unit}`;
                 }
             };
 
-            // Update Data Sensor
-            updateText('outdoor-temp', data.outdoorT, '°C');
-            updateText('outdoor-humidity', data.outdoorH, '%');
-            updateText('indoor-temp-1', data.indoorT1, '°C');
-            updateText('indoor-humidity-1', data.indoorH1, '%');
-            updateText('indoor-temp-2', data.indoorT2, '°C');
-            updateText('indoor-humidity-2', data.indoorH2, '%');
-            updateText('indoor-battery', data.battery, '%');
-            
-            // Update Baterai
-            const batteryLevel = data.battery;
+            setText('indoor-temp-1', indoor.t1, '°C');
+            setText('indoor-temp-2', indoor.t2, '°C');
+            setText('indoor-humidity-1', indoor.h1, '%');
+            setText('indoor-humidity-2', indoor.h2, '%');
+            setText('indoor-battery', indoor.batt, '%');
+
+            setText('outdoor-temp', outdoor.t, '°C');
+            setText('outdoor-humidity', outdoor.h, '%');
+
+            const batteryLevel = indoor.batt || 0;
             const batteryIcon = document.getElementById('indoor-battery-icon');
-            // Hapus kelas warna lama
             batteryIcon.classList.remove('text-success', 'text-warning', 'text-danger');
             
             if (batteryLevel < 20) {
@@ -301,23 +354,15 @@
             } else {
                 batteryIcon.classList.add('text-success');
             }
-            
-            // Update Status WiFi (Hanya Teks dan Ikon)
-            const wifiStatus = data.wifiStatus;
-            document.getElementById('indoor-wifi-status').textContent = wifiStatus;
-            document.getElementById('outdoor-wifi-status').textContent = wifiStatus;
-            
-            // Update Waktu
+
             const now = new Date();
-            document.getElementById('last-updated').textContent = Update Terakhir: ${now.toLocaleTimeString()};
+            document.getElementById('last-updated').textContent = `Update Terakhir: ${now.toLocaleTimeString()}`;
             document.getElementById('last-updated').classList.remove('text-danger');
         }
 
-        // Inisialisasi dan Atur Interval untuk Pembaruan
         document.addEventListener('DOMContentLoaded', () => {
-            fetchThingspeakData(); // Muat data awal
-            // Atur interval 15 detik (15000 ms) untuk update
-            setInterval(fetchThingspeakData, 15000); 
+            fetchThingspeakData(); 
+            setInterval(fetchThingspeakData, 15000);
         });
     </script>
 
