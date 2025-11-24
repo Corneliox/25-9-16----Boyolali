@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Suhu ESP32</title>
+
+    <!-- Bootstrap 5 CSS CDN (Dark Theme) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        /* Custom Dark Mode Styling */
+        body {
+            background-color: #121212; /* Latar belakang sangat gelap */
+            color: #e0e0e0; /* Teks terang */
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            background-color: #1e1e1e; /* Latar belakang kartu lebih gelap */
+            border: 1px solid #333;
+            border-radius: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(118, 118, 118, 0.15); /* Bayangan terang untuk mode gelap */
+        }
+        .display-3 {
+            font-weight: 700;
+        }
+        .section-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.75rem;
+        }
+        /* Style kartu tautan Wifi agar terlihat seperti kartu dan dapat diklik */
+        .wifi-link-card {
+            text-decoration: none; /* Hapus garis bawah */
+            color: inherit; /* Warisi warna teks */
+            display: block; /* Buat tag anchor mengisi kartu */
+            height: 100%;
+        }
+        .wifi-link-card:hover .card {
+            border-color: #0d6efd; /* Sorot batas saat hover */
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar (Header) -->
+    <nav class="navbar navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1"><i class="fas fa-microchip me-2 text-info"></i>Monitor Thingspeak</span>
+            <span class="navbar-text text-white-50" id="last-updated">
+                Update Terakhir: Mengambil...
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+
+            <!-- ======================================= -->
+            <!-- 1. BAGIAN DATA DALAM RUANGAN (Kolom Kiri) -->
+            <!-- ======================================= -->
+            <div class="col-lg-6 mb-4">
+                <h2 class="text-primary section-header"><i class="fas fa-home me-2"></i>Monitoring Dalam Ruangan</h2>
+                <div class="row g-4">
+
+                    <!-- Kartu Suhu Dalam 1 -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-thermometer-half fa-3x mb-3 text-primary"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Suhu Dalam 1</p>
+                                <h2 class="display-3 text-primary" id="indoor-temp-1">--.-°C</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Kelembaban Dalam 1 -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tint fa-3x mb-3 text-info"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Kelembaban Dalam 1</p>
+                                <h2 class="display-3 text-info" id="indoor-humidity-1">--.-%</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Suhu Dalam 2 -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-thermometer-three-quarters fa-3x mb-3 text-primary"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Suhu Dalam 2</p>
+                                <h2 class="display-3 text-primary" id="indoor-temp-2">--.-°C</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Kelembaban Dalam 2 -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-water fa-3x mb-3 text-info"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Kelembaban Dalam 2</p>
+                                <h2 class="display-3 text-info" id="indoor-humidity-2">--.-%</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Status Baterai -->
+                    <div class="col-md-6">
+                        <div class="card p-3">
+                            <div class="card-body text-center">
+                                <i class="fas fa-battery-full fa-2x mb-2 text-success" id="indoor-battery-icon"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Level Baterai</p>
+                                <h4 class="text-white" id="indoor-battery">--%</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Tautan Status WiFi -->
+                    <div class="col-md-6">
+                        <a href="http://192.168.4.1" target="_blank" class="wifi-link-card" title="Klik untuk Konfigurasi WiFi">
+                            <div class="card p-3 h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-wifi fa-2x mb-2 text-secondary" id="indoor-wifi-icon"></i>
+                                    <p class="card-title text-uppercase fw-bold text-muted mb-1">Status WiFi (Config)</p>
+                                    <span class="badge bg-secondary fs-5" id="indoor-wifi-status">Config</span>
+                                    <p class="mt-1 text-xs text-muted">192.168.4.1</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- 2. BAGIAN DATA LUAR RUANGAN (Kolom Kanan) -->
+            <!-- ======================================= -->
+            <div class="col-lg-6 mb-4">
+                <h2 class="text-warning section-header"><i class="fas fa-cloud-sun me-2"></i>Monitoring Luar Ruangan</h2>
+                <div class="row g-4">
+
+                    <!-- Kartu Suhu Luar -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sun fa-3x mb-3 text-warning"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Suhu Luar</p>
+                                <h2 class="display-3 text-warning" id="outdoor-temp">--.-°C</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Kelembaban Luar -->
+                    <div class="col-md-6">
+                        <div class="card p-3 h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-cloud-rain fa-3x mb-3 text-secondary"></i>
+                                <p class="card-title text-uppercase fw-bold text-muted mb-1">Kelembaban Luar</p>
+                                <h2 class="display-3 text-secondary" id="outdoor-humidity">--.-%</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Tautan Status WiFi Luar -->
+                    <div class="col-md-12">
+                        <a href="http://192.168.4.1" target="_blank" class="wifi-link-card" title="Klik untuk Konfigurasi WiFi">
+                            <div class="card p-3 h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-signal fa-2x mb-2 text-secondary" id="outdoor-wifi-icon"></i>
+                                    <p class="card-title text-uppercase fw-bold text-muted mb-1">WiFi Luar (Config)</p>
+                                    <span class="badge bg-secondary fs-5" id="outdoor-wifi-status">Config</span>
+                                    <p class="mt-1 text-xs text-muted">192.168.4.1</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-white-50 py-3 mt-4 border-top border-secondary">
+        <div class="container-fluid">
+            <p class="mb-0">&copy; 2025 Live Temp Hub | Data dari ESP32 via Thingspeak</p>
+        </div>
+    </footer>
+
+
+    <!-- ======================================= -->
+    <!-- JAVASCRIPT UNTUK UPDATE DATA -->
+    <!-- ======================================= -->
+    <script>
+        // --- KONFIGURASI ---
+        // Channel ID DAN API Key SUDAH DI-SET
+        const THINGSPEAK_CHANNEL_ID = '3167317'; 
+        const THINGSPEAK_READ_API_KEY = 'S9AAMNFH3SO4D1QU'; 
+        // ---------------------
+
+        function fetchThingspeakData() {
+            // --- PANGGILAN API THINGSPEAK SEBENARNYA ---
+            const url = https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?api_key=${THINGSPEAK_READ_API_KEY}&results=1;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(HTTP error! status: ${response.status});
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.feeds || data.feeds.length === 0 || !data.feeds[0]) {
+                        console.warn('Data Thingspeak kosong atau tidak ada feed.');
+                        // Menampilkan N/A jika tidak ada data
+                        updateUI({
+                            outdoorT: 'N/A', outdoorH: 'N/A',
+                            indoorT1: 'N/A', indoorH1: 'N/A',
+                            indoorT2: 'N/A', indoorH2: 'N/A',
+                            battery: 0, wifiStatus: 'Config'
+                        });
+                        document.getElementById('last-updated').textContent = 'Update Terakhir: Belum ada data';
+                        return;
+                    }
+                    
+                    const latestFeed = data.feeds[0];
+
+                    // Pemetaan field berdasarkan daftar Anda:
+                    // field1: Suhu Luar
+                    // field2: Humid Luar
+                    // field3: Suhu Dalam 1
+                    // field4: Humid Dalam 1
+                    // field5: Suhu Dalam 2
+                    // field6: Humid Dalam 2
+                    // field7: Baterai
+
+                    const sensorData = {
+                        outdoorT: parseFloat(latestFeed.field1).toFixed(1) || '--.-',
+                        outdoorH: parseFloat(latestFeed.field2).toFixed(1) || '--.-',
+                        indoorT1: parseFloat(latestFeed.field3).toFixed(1) || '--.-',
+                        indoorH1: parseFloat(latestFeed.field4).toFixed(1) || '--.-',
+                        indoorT2: parseFloat(latestFeed.field5).toFixed(1) || '--.-',
+                        indoorH2: parseFloat(latestFeed.field6).toFixed(1) || '--.-',
+                        battery: parseInt(latestFeed.field7) || 0, // Baterai
+                        wifiStatus: 'Config' // Status WiFi di-hardcode
+                    };
+                    
+                    updateUI(sensorData);
+                })
+                .catch(error => {
+                    console.error('Error fetching data from Thingspeak:', error);
+                    // Tampilkan error di UI
+                    document.getElementById('last-updated').textContent = 'Error: Gagal mengambil data';
+                    document.getElementById('last-updated').classList.add('text-danger');
+                });
+        }
+
+        function updateUI(data) {
+            // Fungsi untuk update teks, menangani 'N/A'
+            const updateText = (elementId, value, unit) => {
+                const element = document.getElementById(elementId);
+                if (value === 'N/A' || isNaN(value)) {
+                    element.textContent = 'N/A';
+                } else {
+                    element.textContent = ${value}${unit};
+                }
+            };
+
+            // Update Data Sensor
+            updateText('outdoor-temp', data.outdoorT, '°C');
+            updateText('outdoor-humidity', data.outdoorH, '%');
+            updateText('indoor-temp-1', data.indoorT1, '°C');
+            updateText('indoor-humidity-1', data.indoorH1, '%');
+            updateText('indoor-temp-2', data.indoorT2, '°C');
+            updateText('indoor-humidity-2', data.indoorH2, '%');
+            updateText('indoor-battery', data.battery, '%');
+            
+            // Update Baterai
+            const batteryLevel = data.battery;
+            const batteryIcon = document.getElementById('indoor-battery-icon');
+            // Hapus kelas warna lama
+            batteryIcon.classList.remove('text-success', 'text-warning', 'text-danger');
+            
+            if (batteryLevel < 20) {
+                batteryIcon.classList.add('text-danger');
+            } else if (batteryLevel < 50) {
+                batteryIcon.classList.add('text-warning');
+            } else {
+                batteryIcon.classList.add('text-success');
+            }
+            
+            // Update Status WiFi (Hanya Teks dan Ikon)
+            const wifiStatus = data.wifiStatus;
+            document.getElementById('indoor-wifi-status').textContent = wifiStatus;
+            document.getElementById('outdoor-wifi-status').textContent = wifiStatus;
+            
+            // Update Waktu
+            const now = new Date();
+            document.getElementById('last-updated').textContent = Update Terakhir: ${now.toLocaleTimeString()};
+            document.getElementById('last-updated').classList.remove('text-danger');
+        }
+
+        // Inisialisasi dan Atur Interval untuk Pembaruan
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchThingspeakData(); // Muat data awal
+            // Atur interval 15 detik (15000 ms) untuk update
+            setInterval(fetchThingspeakData, 15000); 
+        });
+    </script>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+</body>
+</html>
